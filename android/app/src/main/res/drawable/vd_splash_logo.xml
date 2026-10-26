@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Logo RRI sebagai vector (background transparan), viewport persegi agar aman untuk splash Android 12+ -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="600"
+    android:viewportHeight="600">
+
+    <group android:translateY="95">
+
+        <group android:name="g_bar1" android:pivotX="75" android:pivotY="366">
+            <path android:fillColor="#1737D6" android:pathData="M31,148H120V366H31Z" />
+        </group>
+
+        <group android:name="g_quarter" android:pivotX="218" android:pivotY="236">
+            <path android:fillColor="#1737D6" android:pathData="M130,236A88,88 0 0 1 218,148V236Z" />
+        </group>
+
+        <group android:name="g_bar2" android:pivotX="296" android:pivotY="366">
+            <path android:fillColor="#1737D6" android:pathData="M252,148H341V366H252Z" />
+        </group>
+
+        <group android:name="g_circle" android:pivotX="399" android:pivotY="192">
+            <path android:fillColor="#1737D6" android:pathData="M399,143A49,49 0 1 1 399,241A49,49 0 1 1 399,143Z" />
+        </group>
+
+        <group android:name="g_stem" android:pivotX="516" android:pivotY="366">
+            <path android:fillColor="#1737D6" android:pathData="M472,366V236A88,88 0 0 1 560,148V366Z" />
+        </group>
+
+        <group android:name="g_dot">
+            <path android:fillColor="#1737D6" android:pathData="M472,50H560V138H472Z" />
+        </group>
+    </group>
+</vector>
