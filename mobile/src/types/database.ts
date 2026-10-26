@@ -52,6 +52,9 @@ export interface Task {
   link_referensi?: string | null;
   link_hasil?: string | null;
   revision_count?: number;
+  status_posting?: 'menunggu_posting' | 'sudah_diposting' | null;
+  link_sosmed?: { instagram?: string; tiktok?: string; youtube?: string; [key: string]: string | undefined } | null;
+  perlu_upload_sosmed?: boolean;
   created_by?: string | null;
   deleted_at?: string | null;
   created_at: string;
