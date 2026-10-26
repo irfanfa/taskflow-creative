@@ -10,7 +10,9 @@
     "test": "tsx --test tests/*.test.ts",
     "cap:sync": "cap sync",
     "cap:android": "cap open android",
-    "cap:ios": "cap open ios"
+    "cap:ios": "cap open ios",
+    "mobile": "npx expo start mobile --go",
+    "mobile:tunnel": "npx expo start mobile --go --tunnel"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
