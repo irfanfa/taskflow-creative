@@ -241,7 +241,7 @@ export function Sidebar({ role, profile, isOpen, onClose }: SidebarProps) {
             onClick={() => onClose && onClose()}
             className="flex items-center gap-2.5 min-w-0"
           >
-            <div className="h-9 w-11 rounded-lg bg-slate-900 dark:bg-slate-800 flex items-center justify-center p-1 border border-slate-700/80 shadow-2xs overflow-hidden shrink-0">
+            <div className="h-9 w-11 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center p-1 border border-slate-200 dark:border-slate-700/80 shadow-2xs overflow-hidden shrink-0">
               <Image
                 src="/logo.png"
                 alt="KMB Team Creative Logo"
@@ -272,7 +272,7 @@ export function Sidebar({ role, profile, isOpen, onClose }: SidebarProps) {
         </div>
 
         {/* Role Badge Indicator */}
-        <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 flex items-center justify-between">
+        <div className="px-6 py-3 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950/60 flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Akses Panel
           </span>
@@ -348,7 +348,7 @@ export function Sidebar({ role, profile, isOpen, onClose }: SidebarProps) {
 
         {/* Mobile-only: User Profile & Logout Section in Sidebar Footer */}
         {profile && (
-          <div className="border-t border-slate-200 dark:border-slate-800 p-3 bg-slate-50/70 dark:bg-slate-950/70 shrink-0 md:hidden">
+          <div className="border-t border-slate-200 dark:border-slate-800 p-3 bg-white dark:bg-slate-950/70 shrink-0 md:hidden">
             <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs">
               <Link
                 href={
@@ -408,7 +408,7 @@ export function Sidebar({ role, profile, isOpen, onClose }: SidebarProps) {
         )}
 
         {/* System Timezone Notice */}
-        <div className="border-t border-slate-100 dark:border-slate-800 p-3.5 bg-slate-50/50 dark:bg-slate-950/50 shrink-0 pb-[max(0.875rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))]">
+        <div className="border-t border-slate-100 dark:border-slate-800 p-3.5 bg-white dark:bg-slate-950/50 shrink-0 pb-[max(0.875rem,calc(env(safe-area-inset-bottom,0px)+0.5rem))]">
           <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
             <span className="flex items-center gap-1.5 font-medium">
               <Clock className="h-3.5 w-3.5 text-slate-400" /> WIB (UTC+7)

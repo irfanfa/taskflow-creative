@@ -20,9 +20,13 @@ export const metadata: Metadata = {
     'Aplikasi monitoring dan pencatatan tugas tim kreatif (video editor & desainer grafis) dengan notifikasi deadline otomatis.',
   manifest: '/manifest.json',
   icons: {
-    icon: '/logo.png',
-    shortcut: '/logo.png',
-    apple: '/logo.png',
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/icons/icon-192.png',
   },
   appleWebApp: {
     capable: true,

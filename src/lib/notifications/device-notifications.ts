@@ -124,7 +124,7 @@ export async function triggerNativeNotification({
           visibility: 1, // Public
           vibration: true,
           lights: true,
-          lightColor: '#4f46e5',
+          lightColor: '#ffffff',
         }).catch(() => {});
         isChannelCreated = true;
       }
@@ -167,7 +167,7 @@ export async function triggerNativeNotification({
               body,
               channelId: 'default',
               smallIcon: 'ic_launcher',
-              iconColor: '#4f46e5',
+              iconColor: '#ffffff',
               isExactNotification: false,
               isExactMandatory: false,
               foreground: true,
