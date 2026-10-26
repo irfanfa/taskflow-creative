@@ -32,6 +32,12 @@ export interface TechnicalSpecs {
   [key: string]: string | undefined;
 }
 
+export interface TaskAssignee {
+  id: string;
+  user_id: string;
+  profiles?: Profile | null;
+}
+
 export interface Task {
   id: string;
   judul: string;
@@ -43,11 +49,12 @@ export interface Task {
   deadline: string;
   status: TaskStatus;
   spesifikasi_teknis?: TechnicalSpecs;
-  assigned_to?: string | null;
+  link_referensi?: string | null;
+  link_hasil?: string | null;
+  revision_count?: number;
   created_by?: string | null;
+  deleted_at?: string | null;
   created_at: string;
   updated_at: string;
-  // Relasi
-  assigned_profile?: Profile | null;
-  creator_profile?: Profile | null;
+  task_assignees?: TaskAssignee[];
 }

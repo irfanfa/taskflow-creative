@@ -1,47 +1,78 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TaskPriority } from '../types/database';
+import { Flame, ArrowUp, Minus, ArrowDown } from 'lucide-react-native';
 
 interface PriorityBadgeProps {
   priority: TaskPriority;
 }
 
 export function PriorityBadge({ priority }: PriorityBadgeProps) {
-  const getColors = () => {
+  const getBadgeConfig = () => {
     switch (priority) {
       case 'Urgent':
-        return { bg: '#FEF2F2', text: '#DC2626', border: '#FCA5A5' };
+        return {
+          label: 'Urgent',
+          bg: '#FFF1F2',
+          text: '#BE123C',
+          border: '#FECDD3',
+          icon: <Flame size={11} color="#BE123C" style={styles.icon} />,
+        };
       case 'Tinggi':
-        return { bg: '#FFF7ED', text: '#EA580C', border: '#FDBA74' };
+        return {
+          label: 'Tinggi',
+          bg: '#FFFBEB',
+          text: '#B45309',
+          border: '#FDE68A',
+          icon: <ArrowUp size={11} color="#B45309" style={styles.icon} />,
+        };
       case 'Sedang':
-        return { bg: '#EFF6FF', text: '#2563EB', border: '#93C5FD' };
+        return {
+          label: 'Sedang',
+          bg: '#EFF6FF',
+          text: '#1D4ED8',
+          border: '#BFDBFE',
+          icon: <Minus size={11} color="#1D4ED8" style={styles.icon} />,
+        };
       case 'Rendah':
       default:
-        return { bg: '#F8FAFC', text: '#64748B', border: '#E2E8F0' };
+        return {
+          label: 'Rendah',
+          bg: '#F8FAFC',
+          text: '#475569',
+          border: '#E2E8F0',
+          icon: <ArrowDown size={11} color="#475569" style={styles.icon} />,
+        };
     }
   };
 
-  const colors = getColors();
+  const config = getBadgeConfig();
 
   return (
     <View
       style={[
         styles.badge,
-        { backgroundColor: colors.bg, borderColor: colors.border },
+        { backgroundColor: config.bg, borderColor: config.border },
       ]}
     >
-      <Text style={[styles.text, { color: colors.text }]}>{priority}</Text>
+      {config.icon}
+      <Text style={[styles.text, { color: config.text }]}>{config.label}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 12,
+    borderRadius: 20,
     borderWidth: 1,
     alignSelf: 'flex-start',
+  },
+  icon: {
+    marginRight: 3,
   },
   text: {
     fontSize: 11,

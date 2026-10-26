@@ -8,16 +8,26 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  SafeAreaView,
+  ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/auth-context';
 import { supabase } from '../lib/supabase';
 import { Task } from '../types/database';
 import { TaskCard } from '../components/TaskCard';
 import { TaskDetailModal } from './TaskDetailModal';
-import { Search, Filter, Layers, Clock, AlertCircle, CheckCircle2 } from 'lucide-react-native';
+import {
+  Search,
+  Layers,
+  Clock,
+  Eye,
+  CheckCircle2,
+  AlertTriangle,
+  Sparkles,
+} from 'lucide-react-native';
 
 export function DashboardScreen() {
+  const insets = useSafeAreaInsets();
   const { profile } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
@@ -25,28 +35,44 @@ export function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<
-    'all' | 'running' | 'review' | 'done'
+    'all' | 'urgent' | 'running' | 'review' | 'done'
   >('all');
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const fetchTasks = async () => {
     try {
-      let query = supabase
-        .from('tugas')
-        .select('*')
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          task_assignees (
+            id,
+            user_id,
+            profiles (
+              id,
+              nama,
+              spesialisasi,
+              foto
+            )
+          )
+        `)
+        .is('deleted_at', null)
         .order('deadline', { ascending: true });
 
-      // If user is regular pegawai, show tasks assigned to them
-      if (profile?.role === 'pegawai') {
-        query = query.eq('assigned_to', profile.id);
-      }
-
-      const { data, error } = await query;
-      if (!error && data) {
-        setTasks(data as Task[]);
+      if (error) {
+        console.warn('Error fetching tasks from Supabase:', error.message);
+      } else if (data) {
+        let taskList = data as Task[];
+        // Filter for regular pegawai
+        if (profile?.role === 'pegawai') {
+          taskList = taskList.filter((t) =>
+            t.task_assignees?.some((ta) => ta.user_id === profile.id)
+          );
+        }
+        setTasks(taskList);
       }
     } catch (e) {
-      console.warn('Error fetching tasks:', e);
+      console.warn('Unexpected error fetching tasks:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -56,12 +82,19 @@ export function DashboardScreen() {
   useEffect(() => {
     fetchTasks();
 
-    // Setup Supabase Realtime listener
+    // Supabase Realtime listener on 'tasks'
     const channel = supabase
-      .channel('mobile-tugas-realtime')
+      .channel('mobile-tasks-realtime')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'tugas' },
+        { event: '*', schema: 'public', table: 'tasks' },
+        () => {
+          fetchTasks();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'task_assignees' },
         () => {
           fetchTasks();
         }
@@ -76,9 +109,18 @@ export function DashboardScreen() {
   // Filter & Search logic
   useEffect(() => {
     let result = [...tasks];
+    const now = new Date();
 
-    // Filter by tab
-    if (selectedFilter === 'running') {
+    if (selectedFilter === 'urgent') {
+      const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+      result = result.filter(
+        (t) =>
+          t.status !== 'Selesai' &&
+          (t.prioritas === 'Urgent' ||
+            t.prioritas === 'Tinggi' ||
+            new Date(t.deadline) <= threeDaysFromNow)
+      );
+    } else if (selectedFilter === 'running') {
       result = result.filter(
         (t) =>
           t.status === 'Sedang Dikerjakan' ||
@@ -93,7 +135,6 @@ export function DashboardScreen() {
       result = result.filter((t) => t.status === 'Selesai');
     }
 
-    // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
@@ -112,7 +153,7 @@ export function DashboardScreen() {
     fetchTasks();
   }, [profile]);
 
-  // Calculate statistics
+  // Statistics calculation
   const totalCount = tasks.length;
   const runningCount = tasks.filter(
     (t) =>
@@ -126,22 +167,24 @@ export function DashboardScreen() {
   const doneCount = tasks.filter((t) => t.status === 'Selesai').length;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]}>
+      {/* Header with Safe Inset */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greetingText}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.greetingTitle}>
             Halo, {profile?.nama || 'Rekan Tim'} 👋
           </Text>
-          <Text style={styles.roleSubtext}>
-            {profile?.role === 'admin'
-              ? 'Ketua Tim (Admin)'
-              : profile?.role === 'pep'
-              ? 'PEP (Siaran)'
-              : profile?.role === 'sosmed'
-              ? 'Pengelola Sosmed'
-              : profile?.spesialisasi || 'Pegawai Kreatif'}
-          </Text>
+          <View style={styles.roleBadgeHeader}>
+            <Text style={styles.roleTextHeader}>
+              {profile?.role === 'admin'
+                ? 'Ketua Tim (Admin)'
+                : profile?.role === 'pep'
+                ? 'PEP (Siaran)'
+                : profile?.role === 'sosmed'
+                ? 'Pengelola Sosmed'
+                : profile?.spesialisasi || 'Pegawai Kreatif'}
+            </Text>
+          </View>
         </View>
 
         <View style={styles.avatarCircle}>
@@ -151,111 +194,142 @@ export function DashboardScreen() {
         </View>
       </View>
 
-      {/* Statistics Banner */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statBox}>
-          <Layers size={16} color="#1737D6" style={styles.statIcon} />
+      {/* Stats Summary Cards */}
+      <View style={styles.statsRow}>
+        <View style={[styles.statCard, styles.borderIndigo]}>
+          <Layers size={16} color="#4F46E5" style={styles.statIcon} />
           <Text style={styles.statNumber}>{totalCount}</Text>
           <Text style={styles.statLabel}>Total</Text>
         </View>
-        <View style={styles.statBox}>
+
+        <View style={[styles.statCard, styles.borderBlue]}>
           <Clock size={16} color="#0284C7" style={styles.statIcon} />
           <Text style={styles.statNumber}>{runningCount}</Text>
           <Text style={styles.statLabel}>Berjalan</Text>
         </View>
-        <View style={styles.statBox}>
-          <AlertCircle size={16} color="#D97706" style={styles.statIcon} />
+
+        <View style={[styles.statCard, styles.borderPurple]}>
+          <Eye size={16} color="#7E22CE" style={styles.statIcon} />
           <Text style={styles.statNumber}>{reviewCount}</Text>
           <Text style={styles.statLabel}>Review</Text>
         </View>
-        <View style={styles.statBox}>
+
+        <View style={[styles.statCard, styles.borderGreen]}>
           <CheckCircle2 size={16} color="#16A34A" style={styles.statIcon} />
           <Text style={styles.statNumber}>{doneCount}</Text>
           <Text style={styles.statLabel}>Selesai</Text>
         </View>
       </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchWrapper}>
-        <Search size={18} color="#94A3B8" style={styles.searchIcon} />
+      {/* Search Input */}
+      <View style={styles.searchContainer}>
+        <Search size={16} color="#94A3B8" style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Cari judul, klien, atau jenis tugas..."
+          placeholder="Cari judul, klien, atau jenis pekerjaan..."
           placeholderTextColor="#94A3B8"
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
       </View>
 
-      {/* Filter Tabs */}
-      <View style={styles.filterTabs}>
-        <TouchableOpacity
-          style={[
-            styles.tabItem,
-            selectedFilter === 'all' && styles.tabItemActive,
-          ]}
-          onPress={() => setSelectedFilter('all')}
+      {/* Filter Tabs Scrollable */}
+      <View style={styles.filterWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}
         >
-          <Text
+          <TouchableOpacity
             style={[
-              styles.tabText,
-              selectedFilter === 'all' && styles.tabTextActive,
+              styles.filterChip,
+              selectedFilter === 'all' && styles.filterChipActive,
             ]}
+            onPress={() => setSelectedFilter('all')}
           >
-            Semua ({totalCount})
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.filterChipText,
+                selectedFilter === 'all' && styles.filterChipTextActive,
+              ]}
+            >
+              Semua ({totalCount})
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.tabItem,
-            selectedFilter === 'running' && styles.tabItemActive,
-          ]}
-          onPress={() => setSelectedFilter('running')}
-        >
-          <Text
+          <TouchableOpacity
             style={[
-              styles.tabText,
-              selectedFilter === 'running' && styles.tabTextActive,
+              styles.filterChip,
+              selectedFilter === 'urgent' && styles.filterChipActiveAmber,
             ]}
+            onPress={() => setSelectedFilter('urgent')}
           >
-            Berjalan ({runningCount})
-          </Text>
-        </TouchableOpacity>
+            <AlertTriangle
+              size={12}
+              color={selectedFilter === 'urgent' ? '#FFFFFF' : '#B45309'}
+              style={{ marginRight: 4 }}
+            />
+            <Text
+              style={[
+                styles.filterChipText,
+                selectedFilter === 'urgent' && styles.filterChipTextActive,
+              ]}
+            >
+              Perlu Tindakan
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.tabItem,
-            selectedFilter === 'review' && styles.tabItemActive,
-          ]}
-          onPress={() => setSelectedFilter('review')}
-        >
-          <Text
+          <TouchableOpacity
             style={[
-              styles.tabText,
-              selectedFilter === 'review' && styles.tabTextActive,
+              styles.filterChip,
+              selectedFilter === 'running' && styles.filterChipActive,
             ]}
+            onPress={() => setSelectedFilter('running')}
           >
-            Review ({reviewCount})
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.filterChipText,
+                selectedFilter === 'running' && styles.filterChipTextActive,
+              ]}
+            >
+              Berjalan ({runningCount})
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.tabItem,
-            selectedFilter === 'done' && styles.tabItemActive,
-          ]}
-          onPress={() => setSelectedFilter('done')}
-        >
-          <Text
+          <TouchableOpacity
             style={[
-              styles.tabText,
-              selectedFilter === 'done' && styles.tabTextActive,
+              styles.filterChip,
+              selectedFilter === 'review' && styles.filterChipActivePurple,
             ]}
+            onPress={() => setSelectedFilter('review')}
           >
-            Selesai ({doneCount})
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.filterChipText,
+                selectedFilter === 'review' && styles.filterChipTextActive,
+              ]}
+            >
+              Review ({reviewCount})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterChip,
+              selectedFilter === 'done' && styles.filterChipActiveGreen,
+            ]}
+            onPress={() => setSelectedFilter('done')}
+          >
+            <Text
+              style={[
+                styles.filterChipText,
+                selectedFilter === 'done' && styles.filterChipTextActive,
+              ]}
+            >
+              Selesai ({doneCount})
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* Task List */}
@@ -281,11 +355,13 @@ export function DashboardScreen() {
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Layers size={40} color="#CBD5E1" />
+              <View style={styles.emptyIconCircle}>
+                <Layers size={36} color="#94A3B8" />
+              </View>
               <Text style={styles.emptyTitle}>Tidak ada tugas ditemukan</Text>
               <Text style={styles.emptySubtitle}>
                 {searchQuery
-                  ? 'Coba ganti kata kunci pencarian Anda'
+                  ? 'Coba gunakan kata kunci pencarian yang lain'
                   : 'Belum ada tugas pada kategori ini'}
               </Text>
             </View>
@@ -300,12 +376,12 @@ export function DashboardScreen() {
         onClose={() => setSelectedTask(null)}
         onTaskUpdated={fetchTasks}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
@@ -314,68 +390,100 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
-  greetingText: {
+  headerLeft: {
+    flex: 1,
+  },
+  greetingTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
+    letterSpacing: -0.3,
   },
-  roleSubtext: {
-    fontSize: 12,
+  roleBadgeHeader: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginTop: 3,
+  },
+  roleTextHeader: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#1737D6',
-    fontWeight: '600',
-    marginTop: 2,
   },
   avatarCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: '#EEF2FF',
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: '#C7D2FE',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarInitial: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: '#1737D6',
   },
-  statsContainer: {
+  statsRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
   },
-  statBox: {
+  statCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     paddingVertical: 10,
+    paddingHorizontal: 6,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
     elevation: 1,
   },
+  borderIndigo: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#4F46E5',
+  },
+  borderBlue: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#0284C7',
+  },
+  borderPurple: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#7E22CE',
+  },
+  borderGreen: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#16A34A',
+  },
   statIcon: {
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statNumber: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     color: '#0F172A',
   },
   statLabel: {
     fontSize: 11,
     color: '#64748B',
-    fontWeight: '500',
-    marginTop: 2,
+    fontWeight: '600',
+    marginTop: 1,
   },
-  searchWrapper: {
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
@@ -384,46 +492,62 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
   },
   searchIcon: {
     marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    height: 40,
+    height: 42,
     fontSize: 13,
     color: '#0F172A',
   },
-  filterTabs: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
+  filterWrapper: {
     marginBottom: 8,
-    gap: 6,
   },
-  tabItem: {
+  filterScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  tabItemActive: {
+  filterChipActive: {
     backgroundColor: '#1737D6',
     borderColor: '#1737D6',
   },
-  tabText: {
+  filterChipActiveAmber: {
+    backgroundColor: '#D97706',
+    borderColor: '#D97706',
+  },
+  filterChipActivePurple: {
+    backgroundColor: '#7E22CE',
+    borderColor: '#7E22CE',
+  },
+  filterChipActiveGreen: {
+    backgroundColor: '#16A34A',
+    borderColor: '#16A34A',
+  },
+  filterChipText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#64748B',
   },
-  tabTextActive: {
+  filterChipTextActive: {
     color: '#FFFFFF',
+    fontWeight: '700',
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 4,
     paddingBottom: 24,
   },
   loadingContainer: {
@@ -437,18 +561,28 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   emptyContainer: {
-    paddingVertical: 60,
+    paddingVertical: 50,
     alignItems: 'center',
+  },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   emptyTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: '#334155',
-    marginTop: 12,
   },
   emptySubtitle: {
     fontSize: 12,
     color: '#94A3B8',
     marginTop: 4,
+    textAlign: 'center',
+    paddingHorizontal: 32,
   },
 });

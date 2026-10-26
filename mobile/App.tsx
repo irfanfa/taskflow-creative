@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
   Image,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/context/auth-context';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
@@ -16,6 +16,7 @@ import { ProfileScreen } from './src/screens/ProfileScreen';
 import { CheckSquare, User as UserIcon } from 'lucide-react-native';
 
 function MainNavigator() {
+  const insets = useSafeAreaInsets();
   const { session, isLoading } = useAuth();
   const [currentTab, setCurrentTab] = useState<'tasks' | 'profile'>('tasks');
 
@@ -39,8 +40,11 @@ function MainNavigator() {
     return <LoginScreen />;
   }
 
+  const bottomPadding = Math.max(insets.bottom, 12);
+  const barHeight = 56 + bottomPadding;
+
   return (
-    <SafeAreaView style={styles.mainContainer}>
+    <View style={styles.mainContainer}>
       <StatusBar style="dark" />
 
       {/* Screen Body */}
@@ -48,24 +52,39 @@ function MainNavigator() {
         {currentTab === 'tasks' ? <DashboardScreen /> : <ProfileScreen />}
       </View>
 
-      {/* Native Bottom Tab Bar */}
-      <View style={styles.tabBar}>
+      {/* Native Bottom Tab Bar with Inset Protection */}
+      <View
+        style={[
+          styles.tabBar,
+          {
+            paddingBottom: bottomPadding,
+            height: barHeight,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={styles.tabButton}
           onPress={() => setCurrentTab('tasks')}
           activeOpacity={0.7}
         >
-          <CheckSquare
-            size={22}
-            color={currentTab === 'tasks' ? '#1737D6' : '#94A3B8'}
-          />
+          <View
+            style={[
+              styles.tabIconWrapper,
+              currentTab === 'tasks' && styles.tabIconWrapperActive,
+            ]}
+          >
+            <CheckSquare
+              size={20}
+              color={currentTab === 'tasks' ? '#1737D6' : '#64748B'}
+            />
+          </View>
           <Text
             style={[
               styles.tabLabel,
               currentTab === 'tasks' && styles.tabLabelActive,
             ]}
           >
-            Tugas
+            Daftar Tugas
           </Text>
         </TouchableOpacity>
 
@@ -74,61 +93,81 @@ function MainNavigator() {
           onPress={() => setCurrentTab('profile')}
           activeOpacity={0.7}
         >
-          <UserIcon
-            size={22}
-            color={currentTab === 'profile' ? '#1737D6' : '#94A3B8'}
-          />
+          <View
+            style={[
+              styles.tabIconWrapper,
+              currentTab === 'profile' && styles.tabIconWrapperActive,
+            ]}
+          >
+            <UserIcon
+              size={20}
+              color={currentTab === 'profile' ? '#1737D6' : '#64748B'}
+            />
+          </View>
           <Text
             style={[
               styles.tabLabel,
               currentTab === 'profile' && styles.tabLabelActive,
             ]}
           >
-            Profil
+            Profil Akun
           </Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <MainNavigator />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <MainNavigator />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
   },
   screenBody: {
     flex: 1,
   },
   tabBar: {
     flexDirection: 'row',
-    height: 64,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingBottom: 6,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 8,
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6,
+    paddingTop: 6,
+  },
+  tabIconWrapper: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  tabIconWrapperActive: {
+    backgroundColor: '#EEF2FF',
   },
   tabLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#94A3B8',
-    marginTop: 4,
+    color: '#64748B',
+    marginTop: 2,
   },
   tabLabelActive: {
     color: '#1737D6',
@@ -151,7 +190,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#1737D6',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 4,
   },
@@ -163,6 +202,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748B',
     marginTop: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });

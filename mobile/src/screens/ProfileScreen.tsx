@@ -4,23 +4,23 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/auth-context';
 import {
-  User,
-  Mail,
   Shield,
   Palette,
   Clock,
   LogOut,
   Smartphone,
   Info,
+  CheckCircle2,
 } from 'lucide-react-native';
 
 export function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const { profile, signOut } = useAuth();
 
   const handleLogout = () => {
@@ -41,8 +41,8 @@ export function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <View style={[styles.mainWrapper, { paddingTop: Math.max(insets.top, 16) }]}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Profile Card */}
         <View style={styles.profileHeaderCard}>
           <View style={styles.avatarLarge}>
@@ -102,11 +102,11 @@ export function ProfileScreen() {
 
           <View style={[styles.infoItem, { borderBottomWidth: 0 }]}>
             <View style={styles.iconCircle}>
-              <Info size={16} color="#1737D6" />
+              <CheckCircle2 size={16} color="#16A34A" />
             </View>
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Sinkronisasi Data</Text>
-              <Text style={styles.infoDesc}>Supabase Realtime PostgreSQL</Text>
+              <Text style={styles.infoTitle}>Sinkronisasi Realtime</Text>
+              <Text style={styles.infoDesc}>Supabase Realtime PostgreSQL WebSocket</Text>
             </View>
           </View>
         </View>
@@ -123,17 +123,18 @@ export function ProfileScreen() {
 
         <Text style={styles.versionText}>KMB Team Creative Native v1.0.0</Text>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  mainWrapper: {
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
   container: {
     padding: 20,
+    paddingBottom: 40,
   },
   profileHeaderCard: {
     backgroundColor: '#FFFFFF',
@@ -145,7 +146,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 10,
     elevation: 2,
   },

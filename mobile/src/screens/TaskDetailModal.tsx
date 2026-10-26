@@ -8,10 +8,13 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Task, TaskStatus } from '../types/database';
 import { StatusBadge } from '../components/StatusBadge';
 import { PriorityBadge } from '../components/PriorityBadge';
+import { DeadlineIndicator } from '../components/DeadlineIndicator';
 import { supabase } from '../lib/supabase';
 import {
   X,
@@ -19,7 +22,10 @@ import {
   Briefcase,
   FileText,
   Settings,
-  Clock,
+  Users,
+  ExternalLink,
+  PlayCircle,
+  Eye,
   CheckCircle2,
 } from 'lucide-react-native';
 
@@ -36,6 +42,7 @@ export function TaskDetailModal({
   onClose,
   onTaskUpdated,
 }: TaskDetailModalProps) {
+  const insets = useSafeAreaInsets();
   const [updating, setUpdating] = useState(false);
 
   if (!task) return null;
@@ -49,7 +56,7 @@ export function TaskDetailModal({
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-      });
+      }) + ' WIB';
     } catch {
       return dateStr;
     }
@@ -59,7 +66,7 @@ export function TaskDetailModal({
     setUpdating(true);
     try {
       const { error } = await supabase
-        .from('tugas')
+        .from('tasks')
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq('id', task.id);
 
@@ -77,7 +84,16 @@ export function TaskDetailModal({
     }
   };
 
+  const openUrl = (url: string) => {
+    if (!url) return;
+    const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+    Linking.openURL(fullUrl).catch(() => {
+      Alert.alert('Perhatian', 'Tidak dapat membuka tautan ini.');
+    });
+  };
+
   const specs = task.spesifikasi_teknis || {};
+  const assignees = task.task_assignees || [];
 
   return (
     <Modal
@@ -87,7 +103,12 @@ export function TaskDetailModal({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View
+          style={[
+            styles.modalContent,
+            { paddingBottom: Math.max(insets.bottom, 20) },
+          ]}
+        >
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.badgeRow}>
@@ -102,38 +123,70 @@ export function TaskDetailModal({
           </View>
 
           <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-            {/* Title & Status */}
+            {/* Title */}
             <Text style={styles.title}>{task.judul}</Text>
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Status Saat Ini:</Text>
+
+            {/* Status & Deadline Row */}
+            <View style={styles.statusDeadlineRow}>
               <StatusBadge status={task.status} />
+              <DeadlineIndicator
+                deadline={task.deadline}
+                isCompleted={task.status === 'Selesai'}
+              />
             </View>
 
-            {/* Client Info */}
+            {/* Klien / Proyek */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Briefcase size={16} color="#1737D6" style={styles.sectionIcon} />
+                <Briefcase size={15} color="#4F46E5" style={styles.sectionIcon} />
                 <Text style={styles.sectionTitle}>Klien / Proyek</Text>
               </View>
               <Text style={styles.sectionText}>
-                {task.klien_proyek || 'Program Internal RRI'}
+                {task.klien_proyek || 'Internal Instansi RRI'}
               </Text>
             </View>
 
-            {/* Timeline Info */}
+            {/* Petugas yang Ditugaskan */}
+            {assignees.length > 0 && (
+              <View style={styles.sectionCard}>
+                <View style={styles.sectionHeader}>
+                  <Users size={15} color="#4F46E5" style={styles.sectionIcon} />
+                  <Text style={styles.sectionTitle}>Petugas Ditugaskan</Text>
+                </View>
+                <View style={styles.assigneesList}>
+                  {assignees.map((ta) => (
+                    <View key={ta.id} style={styles.assigneeChip}>
+                      <View style={styles.assigneeInitialCircle}>
+                        <Text style={styles.assigneeInitialText}>
+                          {ta.profiles?.nama ? ta.profiles.nama.charAt(0) : 'P'}
+                        </Text>
+                      </View>
+                      <View>
+                        <Text style={styles.assigneeName}>
+                          {ta.profiles?.nama || 'Pegawai'}
+                        </Text>
+                        <Text style={styles.assigneeSpec}>
+                          {ta.profiles?.spesialisasi || 'Pegawai'}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Jadwal & Batas Waktu */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <Calendar size={16} color="#1737D6" style={styles.sectionIcon} />
-                <Text style={styles.sectionTitle}>Jadwal & Deadline</Text>
+                <Calendar size={15} color="#4F46E5" style={styles.sectionIcon} />
+                <Text style={styles.sectionTitle}>Jadwal & Batas Waktu</Text>
               </View>
               <View style={styles.dateRow}>
-                <Clock size={14} color="#64748B" style={{ marginRight: 6 }} />
                 <Text style={styles.dateLabel}>Deadline:</Text>
                 <Text style={styles.dateValue}>{formatDate(task.deadline)}</Text>
               </View>
               {task.tanggal_mulai && (
                 <View style={[styles.dateRow, { marginTop: 4 }]}>
-                  <Clock size={14} color="#64748B" style={{ marginRight: 6 }} />
                   <Text style={styles.dateLabel}>Mulai:</Text>
                   <Text style={styles.dateValue}>
                     {formatDate(task.tanggal_mulai)}
@@ -142,26 +195,22 @@ export function TaskDetailModal({
               )}
             </View>
 
-            {/* Description */}
+            {/* Deskripsi */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <FileText size={16} color="#1737D6" style={styles.sectionIcon} />
+                <FileText size={15} color="#4F46E5" style={styles.sectionIcon} />
                 <Text style={styles.sectionTitle}>Deskripsi / Instruksi</Text>
               </View>
               <Text style={styles.descriptionText}>
-                {task.deskripsi || 'Tidak ada deskripsi rincian tugas.'}
+                {task.deskripsi || 'Tidak ada instruksi khusus.'}
               </Text>
             </View>
 
-            {/* Technical Specs */}
+            {/* Spesifikasi Teknis */}
             {Object.keys(specs).length > 0 && (
               <View style={styles.sectionCard}>
                 <View style={styles.sectionHeader}>
-                  <Settings
-                    size={16}
-                    color="#1737D6"
-                    style={styles.sectionIcon}
-                  />
+                  <Settings size={15} color="#4F46E5" style={styles.sectionIcon} />
                   <Text style={styles.sectionTitle}>Spesifikasi Teknis</Text>
                 </View>
                 {specs.durasi && (
@@ -178,7 +227,7 @@ export function TaskDetailModal({
                 )}
                 {specs.rasio && (
                   <View style={styles.specRow}>
-                    <Text style={styles.specKey}>Aspek Rasio:</Text>
+                    <Text style={styles.specKey}>Rasio Video:</Text>
                     <Text style={styles.specVal}>{specs.rasio}</Text>
                   </View>
                 )}
@@ -191,14 +240,40 @@ export function TaskDetailModal({
               </View>
             )}
 
-            {/* Quick Actions */}
+            {/* Link Referensi & Link Hasil */}
+            {(task.link_referensi || task.link_hasil) && (
+              <View style={styles.sectionCard}>
+                <Text style={styles.sectionTitle}>Tautan Berkas</Text>
+                {task.link_referensi && (
+                  <TouchableOpacity
+                    style={styles.linkRow}
+                    onPress={() => openUrl(task.link_referensi!)}
+                  >
+                    <ExternalLink size={14} color="#1737D6" style={{ marginRight: 6 }} />
+                    <Text style={styles.linkText} numberOfLines={1}>
+                      Buka Link Referensi / Materi
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {task.link_hasil && (
+                  <TouchableOpacity
+                    style={[styles.linkRow, { marginTop: 8 }]}
+                    onPress={() => openUrl(task.link_hasil!)}
+                  >
+                    <ExternalLink size={14} color="#16A34A" style={{ marginRight: 6 }} />
+                    <Text style={[styles.linkText, { color: '#16A34A' }]} numberOfLines={1}>
+                      Buka Link Hasil Pekerjaan
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {/* Quick Status Action */}
             <View style={styles.actionSection}>
-              <Text style={styles.actionSectionTitle}>Perbarui Status Tugas</Text>
+              <Text style={styles.actionSectionTitle}>Perbarui Status Pengerjaan</Text>
               {updating ? (
-                <ActivityIndicator
-                  color="#1737D6"
-                  style={{ marginVertical: 12 }}
-                />
+                <ActivityIndicator color="#1737D6" style={{ marginVertical: 12 }} />
               ) : (
                 <View style={styles.actionButtonsRow}>
                   {task.status !== 'Sedang Dikerjakan' && (
@@ -206,14 +281,16 @@ export function TaskDetailModal({
                       style={[styles.actionBtn, styles.actionBtnBlue]}
                       onPress={() => handleUpdateStatus('Sedang Dikerjakan')}
                     >
+                      <PlayCircle size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
                       <Text style={styles.actionBtnText}>Kerjakan</Text>
                     </TouchableOpacity>
                   )}
                   {task.status !== 'Menunggu Review' && (
                     <TouchableOpacity
-                      style={[styles.actionBtn, styles.actionBtnAmber]}
+                      style={[styles.actionBtn, styles.actionBtnPurple]}
                       onPress={() => handleUpdateStatus('Menunggu Review')}
                     >
+                      <Eye size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
                       <Text style={styles.actionBtnText}>Ajukan Review</Text>
                     </TouchableOpacity>
                   )}
@@ -223,7 +300,7 @@ export function TaskDetailModal({
                       onPress={() => handleUpdateStatus('Selesai')}
                     >
                       <CheckCircle2 size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
-                      <Text style={styles.actionBtnText}>Selesai</Text>
+                      <Text style={styles.actionBtnText}>Tandai Selesai</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -246,8 +323,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '85%',
-    paddingBottom: 24,
+    maxHeight: '88%',
   },
   header: {
     flexDirection: 'row',
@@ -267,12 +343,14 @@ const styles = StyleSheet.create({
   categoryBadge: {
     backgroundColor: '#EEF2FF',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
   },
   categoryText: {
-    color: '#4F46E5',
-    fontSize: 12,
+    color: '#4338CA',
+    fontSize: 11,
     fontWeight: '700',
   },
   closeBtn: {
@@ -289,17 +367,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0F172A',
     lineHeight: 24,
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  statusRow: {
+  statusDeadlineRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  statusLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    marginRight: 8,
+    justifyContent: 'space-between',
+    marginBottom: 14,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   sectionCard: {
     backgroundColor: '#F8FAFC',
@@ -321,11 +397,48 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#334155',
+    marginBottom: 4,
   },
   sectionText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#0F172A',
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  assigneesList: {
+    gap: 8,
+    marginTop: 4,
+  },
+  assigneeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  assigneeInitialCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  assigneeInitialText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1737D6',
+  },
+  assigneeName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  assigneeSpec: {
+    fontSize: 11,
+    color: '#64748B',
   },
   dateRow: {
     flexDirection: 'row',
@@ -334,12 +447,13 @@ const styles = StyleSheet.create({
   dateLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: '#64748B',
     marginRight: 4,
   },
   dateValue: {
     fontSize: 12,
     color: '#0F172A',
+    fontWeight: '600',
     flex: 1,
   },
   descriptionText: {
@@ -361,6 +475,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#0F172A',
   },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  linkText: {
+    fontSize: 13,
+    color: '#1737D6',
+    fontWeight: '600',
+    flex: 1,
+  },
   actionSection: {
     marginTop: 6,
     marginBottom: 20,
@@ -380,17 +509,17 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 100,
     flexDirection: 'row',
-    paddingVertical: 10,
+    paddingVertical: 11,
     paddingHorizontal: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionBtnBlue: {
     backgroundColor: '#1737D6',
   },
-  actionBtnAmber: {
-    backgroundColor: '#D97706',
+  actionBtnPurple: {
+    backgroundColor: '#7E22CE',
   },
   actionBtnGreen: {
     backgroundColor: '#16A34A',
