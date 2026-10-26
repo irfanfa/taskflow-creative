@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     cleartext: true,
-    url: 'http://192.168.18.35:3000',
+    url: 'https://3000-agqxqil7oeeuwieu6xk65qlg3m.instabox.tech',
   },
 
   plugins: {
