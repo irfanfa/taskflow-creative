@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">KMB Team Creative</string>
+    <string name="title_activity_main">KMB Team Creative</string>
+    <string name="package_name">com.kmbteam.creative</string>
+    <string name="custom_url_scheme">com.kmbteam.creative</string>
+</resources>

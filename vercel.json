@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/reminders",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/recurring-tasks",
+      "schedule": "5 17 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-attachments",
+      "schedule": "0 19 * * *"
+    }
+  ]
+}
